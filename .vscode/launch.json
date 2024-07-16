@@ -1,0 +1,49 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Andrea Debugger",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "justMyCode": false,
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/python:${env:PYTHONPATH}"
+        },
+        "python": "/home/intellect/anaconda3/envs/andrea/bin/python"
+      },
+      {
+        "name": "(gdb) C/C++ Launch",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/python/andrea/_andrea.cpython-38-x86_64-linux-gnu.so",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+          {
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": true
+          }
+        ]
+      },
+      {
+        "name": "CUDA-GDB Launch",
+        "type": "cuda-gdb",
+        "request": "launch",
+        "program": "${workspaceFolder}/python/andrea/_andrea.cpython-38-x86_64-linux-gnu.so",
+        "args": []
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Python/C++/CUDA",
+        "configurations": ["Python: Andrea Debugger", "(gdb) C/C++ Launch", "CUDA-GDB Launch"]
+      }
+    ]
+  }
