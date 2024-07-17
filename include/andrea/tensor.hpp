@@ -1,65 +1,91 @@
-#ifndef ANDREA_TENSOR_HPP
-#define ANDREA_TENSOR_HPP
+/**
+ * @file Tensor.hpp
+ * @brief Defines a Tensor class for efficient multi-dimensional array operations on CPU and CUDA devices.
+ * 
+ * This Tensor class provides a flexible and memory-safe way to work with multi-dimensional arrays
+ * (tensors) in both CPU and CUDA environments. It utilizes modern C++ features for resource
+ * management and CUDA integration.
+ * 
+ * Key features:
+ * - Supports both CPU and CUDA memory allocation
+ * - Automatic memory management using smart pointers
+ * - Custom CUDA memory deallocation
+ * - Move semantics for efficient ownership transfer
+ * - Deleted copy constructor and assignment to prevent accidental copies
+ * - Automatic calculation of size and strides based on shape
+ * 
+ * Usage:
+ * Tensor cpu_tensor({2, 3, 4}, DeviceType::CPU);  // Creates a 2x3x4 tensor on CPU
+ * Tensor gpu_tensor({2, 3, 4}, DeviceType::CUDA); // Creates a 2x3x4 tensor on CUDA device
+ * 
+ * Note: This class currently supports float data type. Extend using templates for other types.
+ * 
+ * @author Leif Huender
+ * @date 2024
+ * @version 1.0
+ */
 
-#include <algorithm>
-#include <stdexcept>
-#include <cstring>
-#include <memory>
-#include <string>
-#include <random>
+#ifndef TENSOR_HPP
+#define TENSOR_HPP
+
+#include "cuda_error_check.hpp"
 #include <cuda_runtime.h>
-#include "andrea/common.hpp"
-#include "andrea/cuda.hpp"
+#include <stdexcept>
+#include "cuda.hpp"
+#include <random>
+#include <memory>
 #include <vector>
+#include <string>
 
-namespace andrea{
+// Custom deleter for CUDA device memory
+struct cuda_deleter {
+    void operator()(void* ptr) const {
+        cudaFree(ptr);
+    }
+};
 
-Tensor* create_tensor(const float* data, std::vector<int> shape, std::string device="cuda");
-Tensor* create_ones(std::vector<int> shape, std::string device="cuda");
-Tensor* create_zeros(std::vector<int> shape, std::string device="cuda");
-Tensor* create_random(std::vector<int> shape, std::string device="cuda");
+enum class DeviceType { CPU, CUDA };
 
-void delete_tensor(Tensor* tensor);
-void delete_strides(Tensor* tensor);
-void delete_shape(Tensor* tensor);
-void delete_data(Tensor* tensor);
+class Tensor {
+private:
+    std::unique_ptr<float, cuda_deleter> data_;
+    std::vector<int> shape_;
+    std::vector<int> strides_;
+    int size_;
+    int ndim_;
+    DeviceType device_;
 
-void to_device(Tensor& tensor, const std::string device);
+    void allocate_memory();
+    std::vector<int> calculate_strides(const std::vector<int>& shape); 
+public:
+    Tensor(const std::vector<int>& shape, DeviceType device = DeviceType::CUDA);
+    Tensor(const std::vector<int>& shape, const std::vector<float>& data, DeviceType device = DeviceType::CUDA);
+       
+    Tensor create(const std::vector<int>& shape, DeviceType device = DeviceType::CUDA); 
+    Tensor create_with_data(const std::vector<int>& shape, const std::vector<float>& data, DeviceType device = DeviceType::CUDA);
+    Tensor ones(const std::vector<int>& shape, DeviceType device = DeviceType::CUDA);
+    Tensor random(const std::vector<int>& shape, DeviceType device = DeviceType::CUDA);
+    
+    // Operations
+    Tensor add(const Tensor& other) const; 
 
-Tensor* add_tensor(Tensor* tensor1, Tensor* tensor2);
 
-void add_tensor_cpu(Tensor* tensor1, Tensor* tensor2, float* result_data);
+    // Move constructor
+    Tensor(Tensor&& other) noexcept = default;
+    // Move assignment operator
+    Tensor& operator=(Tensor&& other) noexcept = default;
+    // Disable copy constructor and assignment
+    Tensor(const Tensor&) = delete;
+    Tensor& operator=(const Tensor&) = delete;
 
-// float get_item(Tensor* tensor, int* indices);
-// Tensor* add_tensor(Tensor* tensor1, Tensor* tensor2);
-// void make_contiguous(Tensor* tensor);
+    // Accessor methods
+    const float* data() const { return data_.get(); }
+    const std::vector<int>& shape() const { return shape_; }
+    const std::vector<int>& strides() const { return strides_; }
+    int size() const { return size_; }
+    int ndim() const { return ndim_; }
+    DeviceType device() const { return device_; }
 
-// Tensor* sum_tensor(Tensor* tensor, int axis, bool keepdims);
-// Tensor* max_tensor(Tensor* tensor, int axis, bool keepdim);
-// Tensor* min_tensor(Tensor* tensor, int axis, bool keepdim);
-// Tensor* sub_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* elementwise_mul_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* scalar_mul_tensor(Tensor* tensor, float scalar);
-// Tensor* scalar_div_tensor(float scalar, Tensor* tensor);
-// Tensor* tensor_div_scalar(Tensor* tensor, float scalar);
-// Tensor* tensor_div_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* reshape_tensor(Tensor* tensor, int* new_shape, int new_ndim);
-// Tensor* matmul_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* tensor_pow_scalar(Tensor* tensor, float exponent);
-// Tensor* scalar_pow_tensor(float base, Tensor* tensor);
-// Tensor* log_tensor(Tensor* tensor);
-// Tensor* equal_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* equal_broadcasted_tensor(Tensor* tensor1, Tensor* tensor2);
-// Tensor* ones_like_tensor(Tensor* tensor);
-// Tensor* zeros_like_tensor(Tensor* tensor);
-// Tensor* sin_tensor(Tensor* tensor);
-// Tensor* cos_tensor(Tensor* tensor);
-// Tensor* transpose_tensor(Tensor* tensor);
-// Tensor* transpose_axes_tensor(Tensor* tensor, int axis1, int axis2);
+};
 
-// Helper Functions
-//only used to throw an error if device is not cpu or cuda does not set the device
-
-} // namespace andrea
-
-#endif // ANDREA_TENSOR_HPP
+#endif // TENSOR_HPP
