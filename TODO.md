@@ -1,0 +1,8 @@
+- implement tensor
+- implement autograd
+- implement optimization functions
+- implement mlp
+- implement cnn
+- implement transformer
+- implement lnn
+- implement dsl
